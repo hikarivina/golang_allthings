@@ -1,23 +1,37 @@
 package main
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
+
+func minmax(a, b int) (int, int) {
+	if a < b {
+		return a, b
+	} else {
+		return b, a
+	}
+}
 
 type Line struct {
-	X1, Y1, XX2, Y2 int
+	X1, Y1, X2, Y2 int
 }
-type VecgtorImage struct {
-	Line []Line
+type VectorImage struct {
+	Lines []Line
 }
 
-func NewRectangle(width, height int) *VecgtorImage {
+func NewRectangle(width, height int) *VectorImage {
 	width -= 1
 	height -= 1
 
-	return &VecgtorImage{[]Line{
+	return &VectorImage{[]Line{
 		Line{0, 0, width, 0},
 		Line{0, 0, 0, height},
+		Line{width, 0, width, height},
 		Line{0, height, width, height}}}
 }
+
+/// ^^^ The interface you're given
 
 // Interface we have
 type Point struct {
@@ -63,6 +77,49 @@ func DrawPoints(owner RasterImage) string {
 	return b.String()
 }
 
+// solution
+type vectorToRasterAdapter struct {
+	points []Point
+}
+
+func (a *vectorToRasterAdapter) addLine(line Line) {
+	left, right := minmax(line.X1, line.X2)
+	top, bottom := minmax(line.Y1, line.Y2)
+
+	dx := right - left
+	dy := line.Y2 - line.Y1
+
+	if dx == 0 {
+		for y := top; y <= bottom; y++ {
+			a.points = append(a.points, Point{left, y})
+		}
+	} else if dy == 0 {
+		for x := left; x <= right; x++ {
+			a.points = append(a.points, Point{x, top})
+		}
+	}
+
+	fmt.Println("generated", len(a.points), "points")
+}
+
+func (v vectorToRasterAdapter) GetPoints() []Point {
+	return v.points
+}
+
+func VectorToRaster(vi *VectorImage) RasterImage {
+	adapter := vectorToRasterAdapter{}
+
+	for _, line := range vi.Lines {
+		adapter.addLine(line)
+	}
+
+	return adapter
+}
+
 func main() {
+
+	rc := NewRectangle(6, 4)
+	a := VectorToRaster(rc)
+	fmt.Print(DrawPoints(a))
 
 }
